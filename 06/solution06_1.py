@@ -6,13 +6,9 @@ from typing import Tuple
 
 class Direction(Enum):
     North = (-1, 0)
-    Northeast = (-1, 1)
     East = (0, 1)
-    Southeast = (1, 1)
     South = (1, 0)
-    Southwest = (1, -1)
     West = (0, -1)
-    Northwest = (-1, -1)
 
 
 Position = Tuple[int, int]
@@ -66,11 +62,10 @@ with open(sys.argv[1]) as file:
             else:
                 data[(row, column)] = letter
 
-visited = {start_position}
-for position, direction in tour(start_position, Direction.North):
-    if position in visited:
-        continue
-    visited.add(position)
 
+# perform a tour and keep track of the set of visited positions
+visited = {start_position} | {
+    position for position, _ in tour(start_position, Direction.North)
+}
 result = len(visited)
 print(result)

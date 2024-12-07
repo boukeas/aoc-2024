@@ -50,14 +50,19 @@ def tour(position: Position, direction: Direction) -> Tuple[Position, Direction]
             break
 
 
-def tour_cycle(position, direction) -> bool:
-    visited = defaultdict(set)
-    visited[position].add(direction)
+def tour_cycle(position, direction, visited) -> bool:
+    """
+    Perform a tour starting from `position`, facing towards `direction` and return
+    True if a loop is detected or False otherwise. The `visited` argument is a
+    record of previously visited positions and directions and is not modified
+    when simulating the tour (an additional local record is kept instead).
+    """
+    local_visited = defaultdict(set)
+    local_visited[position].add(direction)
     for current_position, current_direction in tour(position, direction):
-        #print(current_position, current_direction)
-        if current_direction in visited[current_position]:
+        if current_direction in local_visited[current_position] or current_direction in visited:
             return True
-        visited[current_position].add(current_direction)
+        local_visited[current_position].add(current_direction)
     return False
 
 
@@ -75,18 +80,28 @@ with open(sys.argv[1]) as file:
 
 
 result = 0
-visited = {start_position}
-# for every step of the tour...
+# map each position to a set of directions in which they have been traversed
+# (for cycle detection)
+visited = defaultdict(set, {start_position: {Direction.North}})
+# perform a tour and, for every step of the tour...
 for position, direction in tour(start_position, Direction.North):
-    if position in visited:
+    if direction in visited[position]:
         continue
-    visited.add(position)
-    # ... place a block at that step and check if the tour that starts
-    # from the starting position is a loop
-    data[position] = "#"
-    if tour_cycle(start_position, Direction.North):
-        result += 1
-    # remove the block
-    data[position] = '.'
+    visited[position].add(direction)
+    # ... look ahead one step to the position where the obstacle will be placed
+    obstacle_position = move(position, direction)
+    try:
+        # make sure the obstacle will be in the grid, in a position that doesn't
+        # interrupt the current trajectory and no obstacle is already there
+        if data[obstacle_position] != "#" and not visited[obstacle_position]:
+            # place the obstacle
+            data[obstacle_position] = "#"
+            # and simulate the rest of the trajectory
+            if tour_cycle(position, turn_right(direction), visited):
+                result += 1
+            # remove the obstacle before continuing
+            data[obstacle_position] = "."
+    except KeyError:
+        pass
 
 print(result)
